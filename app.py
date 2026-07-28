@@ -1,86 +1,59 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from io import BytesIO
+import numpy as np
 
-# --- PAGE SETUP ---
-st.set_page_config(page_title="Pool Scape Professional PDF", layout="wide")
-st.title("🏗️ Pool Scape: Technical Drawing Engine")
-
-# --- SIDEBAR INPUTS ---
-st.sidebar.header("Drawing Dimensions")
-client = st.sidebar.text_input("Client Name", "DMITRY IGNATOV")
-project = st.sidebar.text_input("Project", "G +1 VILLA")
-W = st.sidebar.number_input("Span/Width (m)", value=2.67)
-H = st.sidebar.number_input("Height (m)", value=2.80)
-
-def create_professional_plot(w_m, h_m):
-    # 1. Create the figure
-    fig, ax = plt.subplots(figsize=(10, 12))
+def draw_exact_plan(w_mm):
+    fig, ax = plt.subplots(figsize=(12, 6))
     
-    # 2. DRAWING LOGIC (Section View)
-    # Ground Floor Level
-    ax.axhline(y=0, color='black', linewidth=1.5)
-    ax.text(-1.2, 0.05, "GROUND FLOOR", fontsize=8, fontweight='bold')
+    # 1. THE WALLS (Concrete texture blocks)
+    # Left Wall
+    ax.add_patch(patches.Rectangle((-150, -100), 150, 200, facecolor='#eeeeee', hatch='...'))
+    # Right Wall (based on Width)
+    ax.add_patch(patches.Rectangle((w_mm, -100), 150, 200, facecolor='#eeeeee', hatch='...'))
 
-    # Foundation Footing (0.6m x 0.6m)
-    # centered at x=0
-    footing = patches.Rectangle((-0.3, -0.6), 0.6, 0.6, linewidth=1.2, edgecolor='black', facecolor='#eeeeee', hatch='///')
-    ax.add_patch(footing)
+    # 2. THE RED PROFILES (Simplified technical shapes)
+    # Wall Profile (Left)
+    ax.add_patch(patches.Rectangle((0, -40), 40, 80, linewidth=1.5, edgecolor='red', facecolor='none'))
+    # Middle Hinge Profile (Assume door starts at 60% of width)
+    hinge_x = w_mm * 0.6
+    ax.add_patch(patches.Rectangle((hinge_x, -40), 60, 80, linewidth=1.5, edgecolor='red', facecolor='none'))
+    # End Profile (Right)
+    ax.add_patch(patches.Rectangle((w_mm-40, -40), 40, 80, linewidth=1.5, edgecolor='red', facecolor='none'))
+
+    # 3. THE GLASS PANELS
+    # Fixed Panel (Left to Hinge)
+    ax.plot([40, hinge_x], [0, 0], color='skyblue', linewidth=4, label='Fixed Glass')
     
-    # PCC Layer (0.1m)
-    pcc = patches.Rectangle((-0.3, -0.7), 0.6, 0.1, linewidth=1.2, edgecolor='black', facecolor='#cccccc')
-    ax.add_patch(pcc)
+    # Door Panel (Open at 45 degrees)
+    door_length = w_mm - hinge_x - 40
+    angle = np.deg2rad(45)
+    dx = door_length * np.cos(angle)
+    dy = door_length * np.sin(angle)
+    ax.plot([hinge_x + 60, hinge_x + 60 + dx], [0, dy], color='skyblue', linewidth=4, alpha=0.6)
+    # Dashed Door (Closed position)
+    ax.plot([hinge_x + 60, w_mm - 40], [0, 0], color='gray', linestyle='--', linewidth=1)
+
+    # 4. THE DOOR SWING ARC (The "Exact" detail)
+    arc = patches.Arc((hinge_x + 60, 0), width=door_length*2, height=door_length*2, 
+                      theta1=0, theta2=45, linestyle='--', color='gray')
+    ax.add_patch(arc)
+
+    # 5. LABELS
+    ax.text(w_mm/2, -150, "PLAN", fontsize=14, fontweight='bold', ha='center')
     
-    # Column (150mm = 0.15m)
-    column = patches.Rectangle((-0.075, 0), 0.15, h_m, linewidth=2, edgecolor='black', facecolor='none')
-    ax.add_patch(column)
-    
-    # Top Beam (Horizontal)
-    beam = patches.Rectangle((-w_m/2, h_m-0.15), w_m, 0.15, linewidth=1.5, edgecolor='black', facecolor='none')
-    ax.add_patch(beam)
-
-    # 3. ANNOTATIONS (Matching your PDF text)
-    ax.text(0.4, h_m/2, f"150X150X{int(h_m*1000)}MM ALUMINUM\nSUPPORTING COLUMN\nPOWDER COATED", fontsize=9)
-    ax.text(0.4, -0.3, "600X600X600 FOUNDATION\nTO ENGINEERS DETAILS", fontsize=8)
-    ax.text(0.4, -0.65, "10CM THICK PCC", fontsize=8)
-    ax.text(0, -0.5, "Y12 @ 20 CM C/C", fontsize=8, ha='center', color='blue', fontweight='bold')
-
-    # 4. DIMENSIONS (Red Lines)
-    # Total Height Dim
-    ax.annotate('', xy=(-0.5, 0), xytext=(-0.5, h_m), arrowprops=dict(arrowstyle='<->', color='red'))
-    ax.text(-0.6, h_m/2, f"{h_m:.2f}m", color='red', fontweight='bold', rotation=90, va='center')
-    
-    # Total Width Dim
-    ax.annotate('', xy=(-w_m/2, h_m+0.2), xytext=(w_m/2, h_m+0.2), arrowprops=dict(arrowstyle='<->', color='red'))
-    ax.text(0, h_m+0.3, f"{w_m:.2f}m Span", color='red', fontweight='bold', ha='center')
-
-    # 5. TITLE BLOCK BOX (Bottom Right)
-    stats = f"CLIENT: {client}\nPROJECT: {project}\nDATE: 28/07/2026\nCONTRACTOR: POOL SCAPE LLC"
-    plt.gcf().text(0.6, 0.15, stats, fontsize=10, bbox=dict(facecolor='white', edgecolor='black'))
-
-    # Clean up the graph look
-    ax.set_xlim(-w_m, w_m)
-    ax.set_ylim(-1.5, h_m + 1)
+    # Clean up
+    ax.set_xlim(-200, w_mm + 200)
+    ax.set_ylim(-300, 500)
+    ax.set_aspect('equal')
     ax.axis('off')
-    plt.title("ALUMINIUM PERGOLA SECTION-1", fontsize=14, fontweight='bold')
     
     return fig
 
-# --- RENDER LOGIC ---
-if st.button("🚀 Generate Technical Drawing"):
-    # Create the figure
-    fig = create_professional_plot(W, H)
-    
-    # Show preview on screen (FIXED PART)
+# --- STREAMLIT INTERFACE ---
+st.title("Canvas ZenScreen: Plan View Generator")
+width = st.slider("Total Width (mm)", 800, 2500, 1500)
+
+if st.button("Generate Exact Plan View"):
+    fig = draw_exact_plan(width)
     st.pyplot(fig)
-    
-    # Create PDF for download
-    buf = BytesIO()
-    fig.savefig(buf, format="pdf", bbox_inches='tight')
-    st.download_button(
-        label="📥 Download Professional PDF",
-        data=buf.getvalue(),
-        file_name="PoolScape_Drawing.pdf",
-        mime="application/pdf"
-    )
