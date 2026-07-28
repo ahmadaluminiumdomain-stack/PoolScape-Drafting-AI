@@ -4,80 +4,83 @@ import matplotlib.patches as patches
 from io import BytesIO
 
 # --- PAGE SETUP ---
-st.set_page_config(page_title="Pool Scape PDF Drafter", layout="wide")
-st.title("🏗️ Pool Scape: Instant PDF Technical Drawing")
+st.set_page_config(page_title="Pool Scape Professional PDF", layout="wide")
+st.title("🏗️ Pool Scape: Technical Drawing Engine")
 
-# --- INPUTS ---
+# --- SIDEBAR INPUTS ---
 st.sidebar.header("Drawing Dimensions")
 client = st.sidebar.text_input("Client Name", "DMITRY IGNATOV")
 project = st.sidebar.text_input("Project", "G +1 VILLA")
 W = st.sidebar.number_input("Span/Width (m)", value=2.67)
 H = st.sidebar.number_input("Height (m)", value=2.80)
 
-def generate_pdf_drawing(w_m, h_m):
-    # Create the figure (Paper size A3 style)
-    fig, ax = plt.subplots(figsize=(12, 16))
+def create_professional_plot(w_m, h_m):
+    # 1. Create the figure
+    fig, ax = plt.subplots(figsize=(10, 12))
     
-    # 1. DRAWING THE SECTION (Calculated in Meters)
-    # Ground Line
-    ax.axhline(y=0, color='black', linewidth=2)
-    
-    # Foundation (0.6m x 0.6m)
-    # Drawing at x=0 for section view
-    foundation = patches.Rectangle((-0.3, -0.6), 0.6, 0.6, linewidth=1.5, edgecolor='black', facecolor='#f0f0f0', hatch='...')
-    ax.add_patch(foundation)
+    # 2. DRAWING LOGIC (Section View)
+    # Ground Floor Level
+    ax.axhline(y=0, color='black', linewidth=1.5)
+    ax.text(-1.2, 0.05, "GROUND FLOOR", fontsize=8, fontweight='bold')
+
+    # Foundation Footing (0.6m x 0.6m)
+    # centered at x=0
+    footing = patches.Rectangle((-0.3, -0.6), 0.6, 0.6, linewidth=1.2, edgecolor='black', facecolor='#eeeeee', hatch='///')
+    ax.add_patch(footing)
     
     # PCC Layer (0.1m)
-    pcc = patches.Rectangle((-0.3, -0.7), 0.6, 0.1, linewidth=1.5, edgecolor='black', facecolor='#d0d0d0')
+    pcc = patches.Rectangle((-0.3, -0.7), 0.6, 0.1, linewidth=1.2, edgecolor='black', facecolor='#cccccc')
     ax.add_patch(pcc)
     
-    # Column (0.15m width)
+    # Column (150mm = 0.15m)
     column = patches.Rectangle((-0.075, 0), 0.15, h_m, linewidth=2, edgecolor='black', facecolor='none')
     ax.add_patch(column)
     
-    # 2. LABELS & ANNOTATIONS (Match your PDF style)
-    ax.text(0.4, h_m/2, f"150X150X{int(h_m*1000)}MM ALUMINUM\nSUPPORTING COLUMN\nPOWDER COATED", fontsize=10, fontweight='bold')
-    ax.text(0.4, -0.3, "600X600X600 FOUNDATION\nTO ENGINEERS DETAILS", fontsize=9)
-    ax.text(0.4, -0.65, "10CM THICK PCC", fontsize=9)
-    ax.text(0.4, -0.8, "COMPACTED SOIL FILLING", fontsize=9)
-    ax.text(0, -0.5, "Y12 @ 20 CM C/C", fontsize=8, ha='center', color='blue')
+    # Top Beam (Horizontal)
+    beam = patches.Rectangle((-w_m/2, h_m-0.15), w_m, 0.15, linewidth=1.5, edgecolor='black', facecolor='none')
+    ax.add_patch(beam)
 
-    # 3. DIMENSION LINES
-    ax.annotate('', xy=(-0.4, 0), xytext=(-0.4, h_m), arrowprops=dict(arrowstyle='<->', color='red'))
-    ax.text(-0.5, h_m/2, f"{h_m:.2f}m", color='red', rotation=90, va='center')
+    # 3. ANNOTATIONS (Matching your PDF text)
+    ax.text(0.4, h_m/2, f"150X150X{int(h_m*1000)}MM ALUMINUM\nSUPPORTING COLUMN\nPOWDER COATED", fontsize=9)
+    ax.text(0.4, -0.3, "600X600X600 FOUNDATION\nTO ENGINEERS DETAILS", fontsize=8)
+    ax.text(0.4, -0.65, "10CM THICK PCC", fontsize=8)
+    ax.text(0, -0.5, "Y12 @ 20 CM C/C", fontsize=8, ha='center', color='blue', fontweight='bold')
 
-    # 4. TITLE BLOCK (The Box on the right/bottom)
-    title_text = (
-        f"CLIENT: {client}\n"
-        f"PROJECT: {project}\n"
-        f"TITLE: PERGOLA FOOTING\n"
-        f"CONTRACTOR: POOL SCAPE SWIMMING POOL INSTALLATION LLC\n"
-        f"DATE: 28-07-2026"
-    )
-    plt.gcf().text(0.65, 0.15, title_text, fontsize=11, bbox=dict(facecolor='none', edgecolor='black', pad=10))
+    # 4. DIMENSIONS (Red Lines)
+    # Total Height Dim
+    ax.annotate('', xy=(-0.5, 0), xytext=(-0.5, h_m), arrowprops=dict(arrowstyle='<->', color='red'))
+    ax.text(-0.6, h_m/2, f"{h_m:.2f}m", color='red', fontweight='bold', rotation=90, va='center')
+    
+    # Total Width Dim
+    ax.annotate('', xy=(-w_m/2, h_m+0.2), xytext=(w_m/2, h_m+0.2), arrowprops=dict(arrowstyle='<->', color='red'))
+    ax.text(0, h_m+0.3, f"{w_m:.2f}m Span", color='red', fontweight='bold', ha='center')
 
-    # --- FINAL CLEANUP ---
-    ax.set_xlim(-1.5, 3)
+    # 5. TITLE BLOCK BOX (Bottom Right)
+    stats = f"CLIENT: {client}\nPROJECT: {project}\nDATE: 28/07/2026\nCONTRACTOR: POOL SCAPE LLC"
+    plt.gcf().text(0.6, 0.15, stats, fontsize=10, bbox=dict(facecolor='white', edgecolor='black'))
+
+    # Clean up the graph look
+    ax.set_xlim(-w_m, w_m)
     ax.set_ylim(-1.5, h_m + 1)
-    ax.axis('off') # Hide graph axes
-    plt.title("ALUMINIUM PERGOLA SECTION-1", fontsize=16, pad=20)
+    ax.axis('off')
+    plt.title("ALUMINIUM PERGOLA SECTION-1", fontsize=14, fontweight='bold')
     
-    # Save to Buffer
-    buf = BytesIO()
-    plt.savefig(buf, format="pdf", bbox_inches='tight')
-    return buf
+    return fig
 
-# --- SHOW PREVIEW & DOWNLOAD ---
-if st.button("🚀 Generate PDF Drawing"):
-    pdf_buf = generate_pdf_drawing(W, H)
+# --- RENDER LOGIC ---
+if st.button("🚀 Generate Technical Drawing"):
+    # Create the figure
+    fig = create_professional_plot(W, H)
     
-    # Show the user what it looks like as an image first
-    st.image(pdf_buf, caption="Drawing Preview", use_container_width=True)
+    # Show preview on screen (FIXED PART)
+    st.pyplot(fig)
     
-    # Provide download button
+    # Create PDF for download
+    buf = BytesIO()
+    fig.savefig(buf, format="pdf", bbox_inches='tight')
     st.download_button(
         label="📥 Download Professional PDF",
-        data=pdf_buf,
-        file_name="PoolScape_Technical_Drawing.pdf",
+        data=buf.getvalue(),
+        file_name="PoolScape_Drawing.pdf",
         mime="application/pdf"
     )
